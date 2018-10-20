@@ -6,6 +6,8 @@ const User = require('./models/User');
 
 const app = express();
 
+const io = require('socket.io').listen(app);
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
@@ -13,7 +15,11 @@ const port  = process.env.PORT || 5000;
 
 const router = express.Router();
 
+let user = [];
 
+io.sockets.on('connection',(socket) => {
+   user.push({id: socket.id,email: socket});
+});
 
 router.get('/', (req, res) => {
     res.json({sucess: true});
@@ -65,6 +71,10 @@ router.put('/user',(req,res) => {
 
     });
 
+});
+
+router.post('auth', (req,res) => {
+    const url = req.body.url;
 
 });
 
