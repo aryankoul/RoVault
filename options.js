@@ -1,5 +1,4 @@
 $(function(){
-	console.log(window.location.href);
 	chrome.storage.sync.get(null, function (data) { console.info(data) });
 	chrome.storage.sync.get('user',function(usr){
 		console.log(usr.user);

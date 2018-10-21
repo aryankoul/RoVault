@@ -11,16 +11,27 @@
   },
 
   "browser_action": {
-    "default_icon": "icon16.png",
-    "default_popup": "popup.html"
+    "default_icon": "icon16.png"
   },
+"content_scripts": [
+        {
+        "matches": [
+            "http://*/*",
+            "https://*/*"
+            ],
+        "js": ["content.js"],
+        "run_at": "document_end"         // pay attention to this line
+        }
+],
   "options_page" : "options.html",
   "background": {
     "scripts": ["background.js"],
-    "persistent" : true
+    "persistent": true
 },
   "permissions" : [
     "storage",
-    "tabs"
+    "tabs",
+    "https://*/*",
+    "http://*/*"
   ]
 }
