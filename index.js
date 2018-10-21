@@ -5,20 +5,28 @@ const mongoose = require('mongoose');
 const User = require('./models/User');
 
 const app = express();
+const port  = process.env.PORT || 5000;
+const server = app.listen(port);
 
-const io = require('socket.io').listen(app);
+const io = require('socket.io')(server);
 
+app.set('socketio',io);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
-
-const port  = process.env.PORT || 5000;
 
 const router = express.Router();
 
 let user = [];
 
-io.sockets.on('connection',(socket) => {
-   user.push({id: socket.id,email: socket});
+io.on('connection',(socket) => {
+   console.log("connected");
+
+});
+io.on('success',(success) => {
+    if(success){
+        console.log("done");
+    }
+    else console.log("not done");
 });
 
 router.get('/', (req, res) => {
@@ -73,8 +81,12 @@ router.put('/user',(req,res) => {
 
 });
 
-router.post('auth', (req,res) => {
+router.post('/auth', (req,res) => {
     const url = req.body.url;
+    const email = req.body.email;
+    console.log("aa");
+    let io = req.app.get('socketio');
+    io.emit('authenticate');
 
 });
 
@@ -85,5 +97,4 @@ mongoose.connect("mongodb://aryan:aryan1@ds031541.mlab.com:31541/rovault", { use
 
 app.use('/api',router);
 
-app.listen(port);
 console.log("app is working");
