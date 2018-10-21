@@ -1,15 +1,22 @@
 package com.thainthain.rovault;
 
 import android.app.KeyguardManager;
+import android.content.Context;
 import android.hardware.fingerprint.FingerprintManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 
+import com.github.nkzawa.emitter.Emitter;
+import com.github.nkzawa.socketio.client.IO;
+import com.github.nkzawa.socketio.client.Socket;
+
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
@@ -30,42 +37,77 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_NAME = "RoVault";
     private Cipher cipher;
     private TextView textView;
+    private Socket socket;
+    {
+        try {
+            socket = IO.socket("http://9b0f71f6.ngrok.io");
+        }
+        catch (URISyntaxException e){
+            e.printStackTrace();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.i("aryan","aaaaa");
 
-        KeyguardManager keyguardManager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-        FingerprintManager fingerprintManager = (FingerprintManager) getSystemService(FINGERPRINT_SERVICE);
-        textView = findViewById(R.id.errorText);
+        socket.connect();
+        socket.on("authenticate",onAuth);
+        socket.emit("success",true);
 
-        if(!fingerprintManager.isHardwareDetected()){
-            textView.setText("Your device does not support fingerprint Sensor");
-        }
-        else{
-            if(!fingerprintManager.hasEnrolledFingerprints()){
-                textView.setText("Register at least one fingerprint");
-            }
-            else {
-                if(!keyguardManager.isKeyguardSecure()) {
-                    textView.setText("Lock screen security not enabled");
-                }
-                else{
-                    generateKey();
 
-                    if(cipherInit()) {
-                        FingerprintManager.CryptoObject cryptoObject = new FingerprintManager.CryptoObject(cipher);
-                        FingerprintHandler helper = new FingerprintHandler(this);
-                        helper.startAuth(fingerprintManager, cryptoObject);
-                    }
-                }
-            }
-        }
     }
 
 
-protected void generateKey() {
+    private Emitter.Listener onAuth = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.i("abc","aaa");
+                    KeyguardManager keyguardManager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+                    FingerprintManager fingerprintManager = (FingerprintManager) getSystemService(FINGERPRINT_SERVICE);
+                    textView = findViewById(R.id.errorText);
+
+                    if(!fingerprintManager.isHardwareDetected()){
+                        textView.setText("Your device does not support fingerprint Sensor");
+                    }
+                    else{
+                        if(!fingerprintManager.hasEnrolledFingerprints()){
+                            textView.setText("Register at least one fingerprint");
+                        }
+                        else {
+                            if(!keyguardManager.isKeyguardSecure()) {
+                                textView.setText("Lock screen security not enabled");
+                            }
+                            else{
+
+                                generateKey();
+
+                                if(cipherInit()) {
+                                    FingerprintManager.CryptoObject cryptoObject = new FingerprintManager.CryptoObject(cipher);
+                                    FingerprintHandler helper = new FingerprintHandler(MainActivity.this);
+                                    helper.startAuth(fingerprintManager, cryptoObject, socket);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    };
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        socket.disconnect();
+
+    }
+
+    protected void generateKey() {
     try {
         keyStore = KeyStore.getInstance("AndroidKeyStore");
     }
@@ -118,4 +160,6 @@ public boolean cipherInit() {
             throw new RuntimeException(e);
         }
     }
+
 }
+
